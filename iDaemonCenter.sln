@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2016
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iDaemonCenter", "iDaemonCenter\iDaemonCenter.csproj", "{C3DF8F9A-67B2-408A-BE54-B8891B8DDE03}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iPseudoServer", "iPseudoServer\iPseudoServer.csproj", "{079EB1BA-7F32-4DCC-AC34-DE049511B224}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3DF8F9A-67B2-408A-BE54-B8891B8DDE03}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3DF8F9A-67B2-408A-BE54-B8891B8DDE03}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3DF8F9A-67B2-408A-BE54-B8891B8DDE03}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3DF8F9A-67B2-408A-BE54-B8891B8DDE03}.Release|Any CPU.Build.0 = Release|Any CPU
+		{079EB1BA-7F32-4DCC-AC34-DE049511B224}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{079EB1BA-7F32-4DCC-AC34-DE049511B224}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{079EB1BA-7F32-4DCC-AC34-DE049511B224}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{079EB1BA-7F32-4DCC-AC34-DE049511B224}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {775D000E-F4F9-475F-9833-8E2534B88D49}
+	EndGlobalSection
+EndGlobal
