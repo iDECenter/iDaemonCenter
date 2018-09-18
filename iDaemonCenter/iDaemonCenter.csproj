@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GeminiLab.Core2" Version="0.9.3-pre-20180915-12" />
+    <PackageReference Include="GeminiLab.Core2" Version="0.9.3-pre-20180918-14" />
   </ItemGroup>
 
 </Project>

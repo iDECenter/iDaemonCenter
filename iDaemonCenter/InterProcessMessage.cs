@@ -7,6 +7,8 @@ namespace iDaemonCenter {
         public const string AnyModuleName = "$any";
         public const string TerminatorCommandName = "$terminator";
         public const string ResultCommandName = "$result";
+        public const string ResultModuleNotFoundName = "$modulenotfound";
+        public const string ResultCommandNotFoundName = "$commandnotfound";
 
         private const string ModuleKey = "module";
         private const string CommandKey = "command";
@@ -37,6 +39,9 @@ namespace iDaemonCenter {
             return new InterProcessMessage(moduleName, ResultCommandName, token, args);
         }
 
+        public static InterProcessMessage ModuleNotFoundMessage(int token) => new InterProcessMessage(AnyModuleName, ResultModuleNotFoundName, token, null);
+        public static InterProcessMessage CommandNotFoundMessage(string module, int token) => new InterProcessMessage(module, ResultCommandNotFoundName, token, null);
+
         public static InterProcessMessage Parse(string v) {
             try {
                 if (!(JsonParser.Parse(v) is JsonObject obj)
@@ -55,6 +60,7 @@ namespace iDaemonCenter {
             return new JsonObject(new[] {
                 new JsonObjectKeyValuePair(ModuleKey, Module),
                 new JsonObjectKeyValuePair(CommandKey, Command),
+                new JsonObjectKeyValuePair(TokenKey, Token),
                 new JsonObjectKeyValuePair(ArgsKey, Args)
             }).ToStringForNetwork();
         }

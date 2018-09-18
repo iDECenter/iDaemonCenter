@@ -58,7 +58,20 @@ namespace iPseudoServer {
                             ).ToStringForNetwork() + "$");
                 tw.Flush();
 
-                while (!ns.DataAvailable);
+                byte[] buffer = new byte[4096];
+                int len = ns.Read(buffer, 0, 4096);
+
+                Console.WriteLine(Encoding.UTF8.GetString(buffer, 0, len));
+
+                tw.Write(new JsonObject(
+                                new[] {
+                                    new JsonObjectKeyValuePair("module", "$any"),
+                                    new JsonObjectKeyValuePair("command", "$terminator"),
+                                    new JsonObjectKeyValuePair("token", 1444),
+                                    new JsonObjectKeyValuePair("args", new JsonObject())
+                                }
+                            ).ToStringForNetwork() + "$");
+                tw.Flush();
 
                 ns.Close();
                 client.Close();

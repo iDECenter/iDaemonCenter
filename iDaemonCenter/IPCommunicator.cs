@@ -43,7 +43,7 @@ namespace iDaemonCenter {
         private string _frag;
         private readonly Queue<InterProcessMessage> _messageQueue = new Queue<InterProcessMessage>();
 
-        private const char PackageSeparator = '$';
+        private const char PackageSeparator = '|';
         private static readonly Encoding TcpEncoding = new UTF8Encoding(false);
         
         /// <summary>Read a message.</summary>
@@ -64,6 +64,7 @@ namespace iDaemonCenter {
                     int sepIndex = _frag.IndexOf(PackageSeparator, start);
                     if (sepIndex < 0) break;
 
+                    Console.WriteLine(_frag.Substring(start, sepIndex - start));
                     _messageQueue.Enqueue(InterProcessMessage.Parse(_frag.Substring(start, sepIndex - start)));
                     start = sepIndex + 1;
                 }
@@ -77,9 +78,11 @@ namespace iDaemonCenter {
         public void SendMessage(InterProcessMessage msg) {
             if (!_running) return;
 
-            var msgStr = msg.Serialize() + "$";
+            var msgStr = msg.Serialize() + PackageSeparator;
             var outBuffer = TcpEncoding.GetBytes(msgStr);
             var len = outBuffer.Length;
+
+            Console.WriteLine(msgStr);
 
             _ns.Write(outBuffer, 0, len);
             _ns.Flush();

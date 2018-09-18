@@ -12,9 +12,13 @@ namespace iDaemonCenter.Modules {
     class DockerInterop : DaemonModule {
         public const string ModuleName = "dockerop";
 
+        private ProcessStartInfo getStartInfo(string args) {
+            return new ProcessStartInfo("docker", args) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
+        }
+
         private bool dockerWrapper(string command, string args, out string rv) {
-            var startInfo = new ProcessStartInfo("docker", $"{command} {args}") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true };
-            var p = new Process { StartInfo = startInfo };
+            Console.WriteLine($"{command} {args}");
+            var p = new Process { StartInfo = getStartInfo($"{command} {args}") };
 
             p.Start();
             p.WaitForExit();
@@ -30,9 +34,9 @@ namespace iDaemonCenter.Modules {
 
         private void dockerContainerOpWrapper(string command, string args, int token) {
             SendMessage(InterProcessMessage.GetResultMessage(ModuleName, token, new JsonObject(
-                dockerWrapper(command, args, out var rv) 
-                    ? new[] {new JsonObjectKeyValuePair("cid", rv)} 
-                    : new[] {new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", rv)}
+                dockerWrapper(command, args, out var rv)
+                    ? new[] { new JsonObjectKeyValuePair("cid", rv) }
+                    : new[] { new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", rv) }
             )));
         }
 
@@ -47,13 +51,14 @@ namespace iDaemonCenter.Modules {
         private const string DockerKey = "docker";
         private const string ItemKey = "item";
         private const string ValueKey = "value";
+        private const string ReadonlyKey = "readonly";
 
         private void dockerCreate(InterProcessMessage msg) {
             var args = msg.Args;
 
             var imageName = "$invalidimg";
             var portmap = new List<(int Host, int Docker)>();
-            var dirmap = new List<(string Host, string Docker)>();
+            var dirmap = new List<(string Host, string Docker, bool Readonly)>();
             var ulimits = new List<(string Item, string Value)>();
             var extra = "";
 
@@ -67,7 +72,8 @@ namespace iDaemonCenter.Modules {
             if (args.TryGetJsonArray(DirMapKey, out var dirarray))
                 foreach (var it in dirarray)
                     if (it is JsonObject o && o.TryGetJsonString(HostKey, out var host) && o.TryGetJsonString(DockerKey, out var docker))
-                        dirmap.Add((host, docker));
+                        dirmap.Add((host, docker, o.TryGetJsonBool(ReadonlyKey, out var ro) && ro.Value));
+                        
 
             if (args.TryGetJsonArray(UlimitKey, out var ulimitarray))
                 foreach (var it in ulimitarray)
@@ -76,8 +82,8 @@ namespace iDaemonCenter.Modules {
 
             if (args.TryGetJsonString(ExtraKey, out var ext)) extra = ext;
 
-            var portmapStr = portmap.Count > 0 ? $"-p {portmap.Select(map => $"{map.Host}:{map.Docker}").JoinBy(" ")}" : "";
-            var dirmapStr = dirmap.Count > 0 ? $"-v {dirmap.Select(map => $"{map.Host}:{map.Docker}").JoinBy(" ")}" : "";
+            var portmapStr = portmap.Count > 0 ? $"{portmap.Select(map => $"-p {map.Host}:{map.Docker}").JoinBy(" ")}" : "";
+            var dirmapStr = dirmap.Count > 0 ? $"{dirmap.Select(map => $"-v {map.Host}:{map.Docker}" + (map.Readonly ? ":ro" : "")).JoinBy(" ")}" : "";
             var ulimitsStr = ulimits.Count > 0 ? $"--ulimit {ulimits.Select(limit => $"{limit.Item}={limit.Value}").JoinBy(" ")}" : "";
 
             dockerContainerOpWrapper("create", $"{portmapStr} {dirmapStr} {ulimitsStr} {extra} {imageName}", msg.Token);
@@ -101,11 +107,65 @@ namespace iDaemonCenter.Modules {
             dockerContainerOpWrapper("kill", cid, msg.Token);
         }
 
+        private void dockerPs(InterProcessMessage msg) {
+            var p = new Process { StartInfo = getStartInfo("ps --no-trunc") };
+
+            p.Start();
+            p.WaitForExit();
+
+            if (p.ExitCode == 0) {
+                var cids = p.StandardOutput
+                    .ReadToEnd()
+                    .Split('\n')
+                    .Skip(1)
+                    .Select(line => line.Trim())
+                    .Where(line => line.Length > 0)
+                    .Select(line => line.Split(' ')[0])
+                    .Where(line => line.Length == 64)
+                    .Select(cid => new JsonString(cid));
+
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonArray(cids)) })));
+            } else {
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", p.StandardError.ReadToEnd()) })));
+            }
+        }
+
+        private void dockerPsall(InterProcessMessage msg) {
+            var p = new Process { StartInfo = getStartInfo("ps -a --no-trunc") };
+
+            p.Start();
+            p.WaitForExit();
+
+            if (p.ExitCode == 0) {
+                var cids = p.StandardOutput
+                    .ReadToEnd()
+                    .Split('\n')
+                    .Skip(1)
+                    .Select(line => line.Trim())
+                    .Where(line => line.Length > 0)
+                    .Select(line => line.Split(' ')[0])
+                    .Where(line => line.Length == 64)
+                    .Select(cid => new JsonString(cid));
+
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonArray(cids)) })));
+            } else {
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", p.StandardError.ReadToEnd()) })));
+            }
+        }
+
         protected override void MessageHandler(InterProcessMessage msg) {
-            switch (msg.Command) {
-            case "create":
-                dockerCreate(msg);
-                break;
+            var handlers = new Dictionary<string, Action<InterProcessMessage>>() {
+                ["create"] = dockerCreate,
+                ["start"] = dockerStart,
+                ["kill"] = dockerKill,
+                ["ps"] = dockerPs,
+                ["psall"] = dockerPsall
+            };
+
+            if (handlers.ContainsKey(msg.Command)) {
+                handlers[msg.Command](msg);
+            } else {
+                SendMessage(InterProcessMessage.CommandNotFoundMessage(ModuleName, msg.Token));
             }
         }
     }

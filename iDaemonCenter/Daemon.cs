@@ -25,6 +25,8 @@ namespace iDaemonCenter {
             while (true) {
                 InterProcessMessage msg = _ipc.GetMessage();
                 if (msg == null) break;
+                
+                if (InterProcessMessage.IsTerminator(msg)) break;
 
                 if (_modules.TryGetValue(msg.Module, out var module)) {
                     module.OnMessage(msg);

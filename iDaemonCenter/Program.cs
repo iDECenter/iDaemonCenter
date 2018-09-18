@@ -47,7 +47,7 @@ namespace iDaemonCenter {
             }
             */
 
-            int port = 4396;
+            int port = 3154;
 
             var ipc = new TcpCommunicator(port);
             var daemon = new Daemon(ipc);
