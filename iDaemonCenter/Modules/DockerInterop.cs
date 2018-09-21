@@ -35,8 +35,8 @@ namespace iDaemonCenter.Modules {
         private void dockerContainerOpWrapper(string command, string args, int token) {
             SendMessage(InterProcessMessage.GetResultMessage(ModuleName, token, new JsonObject(
                 dockerWrapper(command, args, out var rv)
-                    ? new[] { new JsonObjectKeyValuePair("cid", rv) }
-                    : new[] { new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", rv) }
+                    ? new[] { new JsonObjectKeyValuePair(CidKey, rv) }
+                    : new[] { new JsonObjectKeyValuePair(CidKey, new JsonNull()), new JsonObjectKeyValuePair(ErrorKey, rv) }
             )));
         }
 
@@ -46,6 +46,7 @@ namespace iDaemonCenter.Modules {
         private const string UlimitKey = "ulimit";
         private const string ExtraKey = "extra";
         private const string CidKey = "cid";
+        private const string ErrorKey = "error";
 
         private const string HostKey = "host";
         private const string DockerKey = "docker";
@@ -153,8 +154,10 @@ namespace iDaemonCenter.Modules {
             }
         }
 
+        private Dictionary<string, Action<InterProcessMessage>> _handlers = null;
+
         protected override void MessageHandler(InterProcessMessage msg) {
-            var handlers = new Dictionary<string, Action<InterProcessMessage>>() {
+            if (_handlers == null) _handlers = new Dictionary<string, Action<InterProcessMessage>>() {
                 ["create"] = dockerCreate,
                 ["start"] = dockerStart,
                 ["kill"] = dockerKill,
@@ -162,8 +165,8 @@ namespace iDaemonCenter.Modules {
                 ["psall"] = dockerPsall
             };
 
-            if (handlers.ContainsKey(msg.Command)) {
-                handlers[msg.Command](msg);
+            if (_handlers.ContainsKey(msg.Command)) {
+                _handlers[msg.Command](msg);
             } else {
                 SendMessage(InterProcessMessage.CommandNotFoundMessage(ModuleName, msg.Token));
             }

@@ -12,7 +12,7 @@ namespace iPseudoServer {
         public static void Main(string[] args) {
             Console.WriteLine("Server start");
 
-            var listener = new TcpListener(IPAddress.Loopback, 4396);
+            var listener = new TcpListener(IPAddress.Loopback, 3154);
             listener.Start();
 
             while (true) {
@@ -24,38 +24,7 @@ namespace iPseudoServer {
                 var tw = new StreamWriter(ns, new UTF8Encoding(false));
                 var tr = new StreamReader(ns, new UTF8Encoding(false));
 
-                tw.Write(new JsonObject(
-                                new[] {
-                                    new JsonObjectKeyValuePair("module", "dockerop"),
-                                    new JsonObjectKeyValuePair("command", "create"),
-                                    new JsonObjectKeyValuePair("token", 1312),
-                                    new JsonObjectKeyValuePair("args", new JsonObject(
-                                        new [] {
-                                            new JsonObjectKeyValuePair("portmap", new JsonArray(
-                                                new [] {
-                                                    new JsonObject(
-                                                        new[] {
-                                                            new JsonObjectKeyValuePair("host", 1589),
-                                                            new JsonObjectKeyValuePair("docker", 8080)
-                                                        }
-                                                    )
-                                                }
-                                            )),
-                                            new JsonObjectKeyValuePair("dirmap", new JsonArray(
-                                                new [] {
-                                                    new JsonObject(
-                                                        new[] {
-                                                            new JsonObjectKeyValuePair("host", "/home/gemini/rbq"),
-                                                            new JsonObjectKeyValuePair("docker", "/workspace")
-                                                        }
-                                                    )
-                                                }
-                                            )),
-                                            new JsonObjectKeyValuePair("img", "idec/idec")
-                                        }
-                                    ))
-                                }
-                            ).ToStringForNetwork() + "$");
+                tw.Write("{\"module\":\"projmgr\",\"command\":\"instantiate\",\"token\":97399723,\"args\":{\"root\":{\"path\":\"/home/gemini/rbq/idec/iDECenter/template/template_stm32f1\",\"shared\":false,\"shared_comment\":\"false is default\"},\"target\":\"/home/gemini/rbq/idec/iDECenter/workspace/gemini/fafafa/\"}}|");
                 tw.Flush();
 
                 byte[] buffer = new byte[4096];
@@ -70,7 +39,7 @@ namespace iPseudoServer {
                                     new JsonObjectKeyValuePair("token", 1444),
                                     new JsonObjectKeyValuePair("args", new JsonObject())
                                 }
-                            ).ToStringForNetwork() + "$");
+                            ).ToStringForNetwork() + "|");
                 tw.Flush();
 
                 ns.Close();
