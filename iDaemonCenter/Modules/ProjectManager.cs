@@ -93,11 +93,92 @@ namespace iDaemonCenter.Modules {
             )));
         }
 
+        private const string IsFileKey = "@isfile";
+        private const string ContentKey = "@content";
+        private const string PathSpecifiedKey = "@path";
+        private const string ReturnThisKey = "@returnthis";
+        private const string OverwriteKey = "@overwrite";
+
+        private void writeToPath(FileInfo info, string content) {
+            var fs = info.OpenWrite();
+            var writer = new StreamWriter(fs, new UTF8Encoding(false));
+
+            writer.Write(content);
+            writer.Close();
+            fs.Close();
+        }
+
+        // encoding is utf-8 no bom
+        // wo yi jing qin ding le
+        private string ensuredirNode(string path, JsonObject node) {
+            bool isFile = false;
+            string pathSpecified = null;
+            string content = null;
+            bool returnthis = false;
+            bool overwrite = false;
+
+            string rv = null;
+
+            if (node.TryGetJsonBool(IsFileKey, out var isFileBool)) isFile = isFileBool;
+            if (node.TryGetJsonBool(OverwriteKey, out var overwriteBool)) overwrite = overwriteBool;
+            if (node.TryGetJsonString(ContentKey, out var contentStr)) content = contentStr;
+            if (node.TryGetJsonBool(ReturnThisKey, out var returnThisBool)) returnthis = returnThisBool;
+            if (node.TryGetJsonString(PathSpecifiedKey, out var pathSpecifiedStr)) pathSpecified = pathSpecifiedStr;
+
+            if (pathSpecified != null) path = pathSpecified;
+            if (isFile) {
+                var info = new FileInfo(path);
+                content = content ?? "";
+
+                if (!info.Exists || overwrite) {
+                    writeToPath(info, content);
+                }
+            } else {
+                var info = new DirectoryInfo(path);
+                if (!info.Exists) info.Create();
+
+                foreach (var i in node.Values) {
+                    if (((string)(i.Key))[0] != '@' && i.Value is JsonObject nextNode) {
+                        rv = ensuredirNode(Path.Combine(path, i.Key), nextNode);
+                    }
+                }
+            }
+
+            if (returnthis) return path;
+            return rv == null ? path : rv;
+        }
+
+        private void ensuredir(InterProcessMessage msg) {
+            var args = msg.Args;
+
+            string error = null;
+
+            if (!args.TryGetJsonObject(RootKey, out var root)) {
+                error = "invalid args";
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(PathKey, new JsonNull()),
+                        new JsonObjectKeyValuePair(ErrorKey, error)
+                    }
+                )));
+
+                return;
+            }
+
+            string rv = ensuredirNode(".", root);
+            SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                new[] {
+                    new JsonObjectKeyValuePair(PathKey, rv)
+                }
+            )));
+        }
+
         private Dictionary<string, Action<InterProcessMessage>> _handlers = null;
 
         protected override void MessageHandler(InterProcessMessage msg) {
             if (_handlers == null) _handlers = new Dictionary<string, Action<InterProcessMessage>>() {
                 ["instantiate"] = instantiate,
+                ["ensuredir"] = ensuredir
             };
 
             if (_handlers.ContainsKey(msg.Command)) {
