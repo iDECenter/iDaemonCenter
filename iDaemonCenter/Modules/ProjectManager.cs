@@ -39,7 +39,10 @@ namespace iDaemonCenter.Modules {
             if (node.TryGetJsonBool(ReadonlyKey, out var readonlyv)) ro = readonlyv; else ro = shared;
             if (!node.TryGetJsonObject(SubKey, out JsonObject sub)) sub = null;
 
-            if (!targetDirectory.Exists) targetDirectory.Create();
+            if (!targetDirectory.Exists) {
+                targetDirectory.Create();
+                Chmod.chmod(targetDirectory.FullName, Chmod.P_755);
+            }
 
             if (shared) {
                 rv.Add((relativePath, path, ro));
@@ -60,6 +63,7 @@ namespace iDaemonCenter.Modules {
                 var pathInfo = new DirectoryInfo(path);
                 foreach (var i in pathInfo.GetFiles()) {
                     i.CopyTo(Path.Combine(targetDirectory.FullName, i.Name), true);
+                    Chmod.chmod(Path.Combine(targetDirectory.FullName, i.Name), Chmod.P_755);
                 }
 
                 foreach (var i in pathInfo.GetDirectories()) {
@@ -84,7 +88,6 @@ namespace iDaemonCenter.Modules {
                 error = "invalid params";
             } else {
                 dirmap = new JsonArray(instantiateNode(root, new DirectoryInfo(target), ".").Select(m => new JsonObject(new[] { new JsonObjectKeyValuePair(DockerKey, m.Docker), new JsonObjectKeyValuePair(HostKey, m.Host), new JsonObjectKeyValuePair(ReadonlyKey, m.Readonly) })));
-                Chmod.chmod(target, Chmod.P_755);
             }
 
             SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
@@ -134,9 +137,13 @@ namespace iDaemonCenter.Modules {
                 if (!info.Exists || overwrite) {
                     writeToPath(info, content);
                 }
+
+                Chmod.chmod(path, Chmod.P_755);
             } else {
                 var info = new DirectoryInfo(path);
                 if (!info.Exists) info.Create();
+
+                Chmod.chmod(path, Chmod.P_755);
 
                 foreach (var i in node.Values) {
                     if (((string)(i.Key))[0] != '@' && i.Value is JsonObject nextNode) {
