@@ -84,6 +84,7 @@ namespace iDaemonCenter.Modules {
                 error = "invalid params";
             } else {
                 dirmap = new JsonArray(instantiateNode(root, new DirectoryInfo(target), ".").Select(m => new JsonObject(new[] { new JsonObjectKeyValuePair(DockerKey, m.Docker), new JsonObjectKeyValuePair(HostKey, m.Host), new JsonObjectKeyValuePair(ReadonlyKey, m.Readonly) })));
+                Chmod.chmod(target, Chmod.P_755);
             }
 
             SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
