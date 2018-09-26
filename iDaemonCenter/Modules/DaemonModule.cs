@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -28,7 +29,14 @@ namespace iDaemonCenter.Modules {
 
                 if (InterProcessMessage.IsTerminator(msg)) break;
 
-                MessageHandler(msg);
+                try {
+                    MessageHandler(msg);
+                } catch (Exception ex) {
+                    Console.Error.WriteLine(ex.GetType().FullName);
+                    Console.Error.WriteLine(ex.Message);
+
+                    throw new Exception();
+                }
             }
         }
 

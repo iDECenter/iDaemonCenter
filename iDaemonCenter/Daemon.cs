@@ -24,7 +24,9 @@ namespace iDaemonCenter {
             
             while (true) {
                 InterProcessMessage msg = _ipc.GetMessage();
-                if (msg == null) break;
+                if (msg == null) { Console.Error.WriteLine("null received. exit."); break; }
+
+                // Console.WriteLine($"msg is module {msg.Module}, command {msg.Command}, args {msg.Args.ToStringForNetwork()}");
                 
                 if (InterProcessMessage.IsTerminator(msg)) break;
 

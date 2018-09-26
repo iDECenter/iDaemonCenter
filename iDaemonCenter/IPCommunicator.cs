@@ -64,7 +64,6 @@ namespace iDaemonCenter {
                     int sepIndex = _frag.IndexOf(PackageSeparator, start);
                     if (sepIndex < 0) break;
 
-                    Console.WriteLine(_frag.Substring(start, sepIndex - start));
                     _messageQueue.Enqueue(InterProcessMessage.Parse(_frag.Substring(start, sepIndex - start)));
                     start = sepIndex + 1;
                 }
@@ -95,6 +94,28 @@ namespace iDaemonCenter {
             _client?.Close();
 
             _running = false;
+        }
+    }
+
+    public class StdioCommunicator : IInterProcessCommunicator {
+        public void Close() {
+            // throw new NotImplementedException();
+        }
+
+        public InterProcessMessage GetMessage() {
+            string cont = Console.ReadLine();
+
+            if (cont == null) return null;
+
+            return InterProcessMessage.Parse(cont);
+        }
+
+        public void SendMessage(InterProcessMessage msg) {
+            Console.WriteLine(msg.Serialize());
+        }
+
+        public void Start() {
+            // throw new NotImplementedException();
         }
     }
 }

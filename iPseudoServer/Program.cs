@@ -10,6 +10,8 @@ using GeminiLab.Core2.ML.Json;
 namespace iPseudoServer {
     class Program {
         public static void Main(string[] args) {
+            Console.WriteLine("Neither working nor used anymore");
+            return;
             Console.WriteLine("Server start");
 
             var listener = new TcpListener(IPAddress.Loopback, 3154);

@@ -17,7 +17,7 @@ namespace iDaemonCenter.Modules {
         }
 
         private bool dockerWrapper(string command, string args, out string rv) {
-            Console.WriteLine($"{command} {args}");
+            Console.Error.WriteLine($"{command} {args}");
             var p = new Process { StartInfo = getStartInfo($"{command} {args}") };
 
             p.Start();

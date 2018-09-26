@@ -47,9 +47,9 @@ namespace iDaemonCenter {
             }
             */
 
-            int port = 3154;
+            // int port = 3154;
 
-            var ipc = new TcpCommunicator(port);
+            var ipc = new StdioCommunicator(); // new TcpCommunicator(port);
             var daemon = new Daemon(ipc);
 
             daemon.Run();
