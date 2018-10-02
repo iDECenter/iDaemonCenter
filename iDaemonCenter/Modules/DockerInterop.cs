@@ -113,8 +113,6 @@ namespace iDaemonCenter.Modules {
         private void dockerKillMany(InterProcessMessage msg) {
             var args = msg.Args;
 
-                Console.Error.WriteLine("Ending all called");
-
             var list = new List<string>();
 
             if (!args.TryGetJsonArray(CidsKey, out var cids)) {
@@ -131,12 +129,8 @@ namespace iDaemonCenter.Modules {
             } else {
                 var p = new Process { StartInfo = getStartInfo($"kill {list.JoinBy(" ")}") };
 
-                Console.Error.WriteLine("Ending all");
-
                 p.Start();
                 p.WaitForExit();
-
-                Console.Error.WriteLine("Done");
 
                 var rcids = p.StandardOutput
                     .ReadToEnd()
