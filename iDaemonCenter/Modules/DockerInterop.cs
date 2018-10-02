@@ -108,6 +108,51 @@ namespace iDaemonCenter.Modules {
             dockerContainerOpWrapper("kill", cid, msg.Token);
         }
 
+        private const string CidsKey = "cids";
+
+        private void dockerKillMany(InterProcessMessage msg) {
+            var args = msg.Args;
+
+                Console.Error.WriteLine("Ending all called");
+
+            var list = new List<string>();
+
+            if (!args.TryGetJsonArray(CidsKey, out var cids)) {
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(ErrorKey, "invalid args") })));
+                return;
+            }
+
+            foreach (var i in cids) {
+                if (i is JsonString str) list.Add(str);
+            }
+
+            if (list.Count == 0) {
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(ErrorKey, new JsonArray()) })));
+            } else {
+                var p = new Process { StartInfo = getStartInfo($"kill {list.JoinBy(" ")}") };
+
+                Console.Error.WriteLine("Ending all");
+
+                p.Start();
+                p.WaitForExit();
+
+                Console.Error.WriteLine("Done");
+
+                var rcids = p.StandardOutput
+                    .ReadToEnd()
+                    .Split('\n')
+                    .Select(line => line.Trim())
+                    .Where(line => line.Length == 64)
+                    .Select(cid => new JsonString(cid));
+
+                if (p.ExitCode == 0) {
+                    SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(CidsKey, new JsonArray(rcids)) })));
+                } else {
+                    SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(CidsKey, new JsonArray(rcids)), new JsonObjectKeyValuePair(ErrorKey, p.StandardError.ReadToEnd()) })));
+                }
+            }
+        }
+
         private void dockerPs(InterProcessMessage msg) {
             var p = new Process { StartInfo = getStartInfo("ps --no-trunc") };
 
@@ -125,9 +170,9 @@ namespace iDaemonCenter.Modules {
                     .Where(line => line.Length == 64)
                     .Select(cid => new JsonString(cid));
 
-                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonArray(cids)) })));
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(CidKey, new JsonArray(cids)) })));
             } else {
-                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair("cid", new JsonNull()), new JsonObjectKeyValuePair("error", p.StandardError.ReadToEnd()) })));
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(new[] { new JsonObjectKeyValuePair(CidKey, new JsonNull()), new JsonObjectKeyValuePair(ErrorKey, p.StandardError.ReadToEnd()) })));
             }
         }
 
@@ -161,6 +206,7 @@ namespace iDaemonCenter.Modules {
                 ["create"] = dockerCreate,
                 ["start"] = dockerStart,
                 ["kill"] = dockerKill,
+                ["killmany"] = dockerKillMany,
                 ["ps"] = dockerPs,
                 ["psall"] = dockerPsall
             };
