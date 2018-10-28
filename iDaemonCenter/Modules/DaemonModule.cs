@@ -34,6 +34,7 @@ namespace iDaemonCenter.Modules {
                 } catch (Exception ex) {
                     Console.Error.WriteLine(ex.GetType().FullName);
                     Console.Error.WriteLine(ex.Message);
+                    Console.Error.WriteLine(ex.StackTrace);
 
                     throw new Exception();
                 }

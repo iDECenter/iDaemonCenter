@@ -181,12 +181,63 @@ namespace iDaemonCenter.Modules {
             )));
         }
 
+        private void deleteDir(InterProcessMessage msg) {
+            var args = msg.Args;
+
+            string error = null;
+
+            if (!args.TryGetJsonString(PathKey, out var path)) {
+                error = "invalid args";
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(PathKey, new JsonNull()),
+                        new JsonObjectKeyValuePair(ErrorKey, error)
+                    }
+                )));
+            } else {
+                Directory.Delete(path, true);
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(PathKey, path)
+                    }
+                )));
+            }
+        }
+
+        private void moveDir(InterProcessMessage msg) {
+            var args = msg.Args;
+
+            string error = null;
+
+            if (!args.TryGetJsonString(PathKey, out var path) || !args.TryGetJsonString(TargetKey, out var target)) {
+                error = "invalid args";
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(PathKey, new JsonNull()),
+                        new JsonObjectKeyValuePair(TargetKey, new JsonNull()),
+                        new JsonObjectKeyValuePair(ErrorKey, error)
+                    }
+                )));
+            } else {
+                new DirectoryInfo(path).CopyTo(new DirectoryInfo(target));
+                Directory.Delete(path, true);
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(PathKey, path),
+                        new JsonObjectKeyValuePair(TargetKey, target)
+                    }
+                )));
+            }
+        }
+
         private Dictionary<string, Action<InterProcessMessage>> _handlers = null;
 
         protected override void MessageHandler(InterProcessMessage msg) {
             if (_handlers == null) _handlers = new Dictionary<string, Action<InterProcessMessage>>() {
                 ["instantiate"] = instantiate,
-                ["ensuredir"] = ensuredir
+                ["ensuredir"] = ensuredir,
+                ["deletedir"] = deleteDir,
+                ["movedir"] = moveDir
             };
 
             if (_handlers.ContainsKey(msg.Command)) {
