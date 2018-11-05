@@ -195,7 +195,11 @@ namespace iDaemonCenter.Modules {
                     }
                 )));
             } else {
-                Directory.Delete(path, true);
+                try {
+                    Directory.Delete(path, true);
+                } catch (Exception ex) {
+                    ; // if any file don't want to leave, let it go
+                }
                 SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
                     new[] {
                         new JsonObjectKeyValuePair(PathKey, path)
@@ -220,7 +224,11 @@ namespace iDaemonCenter.Modules {
                 )));
             } else {
                 new DirectoryInfo(path).CopyTo(new DirectoryInfo(target));
-                Directory.Delete(path, true);
+                try {
+                    Directory.Delete(path, true);
+                } catch (Exception ex) {
+                    ;
+                }
                 SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
                     new[] {
                         new JsonObjectKeyValuePair(PathKey, path),
