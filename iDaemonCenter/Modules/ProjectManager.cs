@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -26,6 +27,8 @@ namespace iDaemonCenter.Modules {
         private const string HostKey = "host";
         private const string DockerKey = "docker";
         private const string ReadonlyKey = "readonly";
+
+        private const string SucceededKey = "succeeded";
 
         private List<(string Docker, string Host, bool Readonly)> instantiateNode(JsonObject node, DirectoryInfo targetDirectory, string relativePath) {
             var rv = new List<(string Docker, string Host, bool Readonly)>();
@@ -197,7 +200,7 @@ namespace iDaemonCenter.Modules {
             } else {
                 try {
                     Directory.Delete(path, true);
-                } catch (Exception ex) {
+                } catch (Exception) {
                     ; // if any file don't want to leave, let it go
                 }
                 SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
@@ -226,13 +229,39 @@ namespace iDaemonCenter.Modules {
                 new DirectoryInfo(path).CopyTo(new DirectoryInfo(target));
                 try {
                     Directory.Delete(path, true);
-                } catch (Exception ex) {
+                } catch (Exception) {
                     ;
                 }
                 SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
                     new[] {
                         new JsonObjectKeyValuePair(PathKey, path),
                         new JsonObjectKeyValuePair(TargetKey, target)
+                    }
+                )));
+            }
+        }
+
+        private void extractTar(InterProcessMessage msg) {
+            var args = msg.Args;
+
+            if (!args.TryGetJsonString(PathKey, out var path) || !args.TryGetJsonString(TargetKey, out var target)) {
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(SucceededKey, false)
+                    }
+                )));
+            } else {
+                Process.Start("mkdir", $"-p {target.Value}").WaitForExit();
+
+                var startInfo = new ProcessStartInfo("tar", $"-x -f {path.Value} -C {target.Value}") { RedirectStandardOutput = true, RedirectStandardError = true };
+                var process = Process.Start(startInfo);
+                process.WaitForExit();
+
+                new StreamWriter(Console.OpenStandardError()).Write(process.StandardError.ReadToEnd());
+
+                SendMessage(InterProcessMessage.GetResultMessage(ModuleName, msg.Token, new JsonObject(
+                    new[] {
+                        new JsonObjectKeyValuePair(SucceededKey, process.ExitCode == 0)
                     }
                 )));
             }
@@ -245,7 +274,8 @@ namespace iDaemonCenter.Modules {
                 ["instantiate"] = instantiate,
                 ["ensuredir"] = ensuredir,
                 ["deletedir"] = deleteDir,
-                ["movedir"] = moveDir
+                ["movedir"] = moveDir,
+                ["extracttar"] = extractTar
             };
 
             if (_handlers.ContainsKey(msg.Command)) {
